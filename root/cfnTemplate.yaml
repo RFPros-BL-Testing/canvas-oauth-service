@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Device Management Device Credentials API
+Parameters:
+  ApplicationName:
+    Type: String
+  BucketName:
+    Type: String
+  Environment:
+    Type: String
+  IotRegion:
+    Type: String
+    Default: us-east-1
+  MQTTEnvironment:
+    Type: String
+    Default: ""
+  ObjectKey:
+    Type: String
+  OutpostBucketName:
+    Type: String
+    Default: ""
+  SdkLayerArn:
+    Type: String
+    Default: "arn:aws:lambda:us-east-1:278482835815:layer:aws-sdk-v3:2"
+  Stack:
+    Type: String
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ApplicationName}-${Environment}-lambda-execution-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: !Sub /${ApplicationName}/
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Policies:
+        - PolicyName: LambdaExecutionRole
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - lambda:ListVersionsByFunction
+                  - apigateway:*
+                Resource: "*"
+              - Effect: Allow
+                Action: logs:CreateLogGroup
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParametersByPath
+                Resource: !Sub arn:aws:ssm:*:${AWS::AccountId}:parameter/${Stack}-${Environment}/vault/*
+
+  PostCsrsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Join ["_", ["PostCsrsFunction", !Ref Environment]]
+      Code:
+        S3Bucket: !Ref BucketName
+        S3Key: !Ref ObjectKey
+      Handler: api/csr.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: nodejs14.x
+      Timeout: 30
+      Layers:
+        - !Ref SdkLayerArn
+      Environment:
+        Variables:
+          Environment: !Ref Environment
+          OutpostBucketName: !Ref OutpostBucketName
+          Stack: !Ref Stack
+
+  PostCsrsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: "PostCsrsFunction"
+    Properties:
+      RetentionInDays: 14
+      LogGroupName: !Join ["", ["/aws/lambda/", !Ref PostCsrsFunction]]
+
+  GetCasFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Join ["_", ["GetCasFunction", !Ref Environment]]
+      Code:
+        S3Bucket: !Ref BucketName
+        S3Key: !Ref ObjectKey
+      Handler: api/ca.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: nodejs14.x
+      Timeout: 30
+      Layers:
+        - !Ref SdkLayerArn
+      Environment:
+        Variables:
+          Environment: !Ref Environment
+          OutpostBucketName: !Ref OutpostBucketName
+          Stack: !Ref Stack
+
+  GetCasFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: "GetCasFunction"
+    Properties:
+      RetentionInDays: 14
+      LogGroupName: !Join ["", ["/aws/lambda/", !Ref GetCasFunction]]

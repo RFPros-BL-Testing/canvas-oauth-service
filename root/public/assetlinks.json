@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission\/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "canvas.uma.salticidae",
+      "sha256_cert_fingerprints": [
+        "13:0E:B6:DA:93:81:A2:68:B0:1B:05:1F:BA:FE:E2:87:62:31:0C:3A:14:CB:EC:68:98:6B:29:9D:8F:8D:62:C4"
+      ]
+    }
+  }
+]
