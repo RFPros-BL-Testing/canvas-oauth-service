@@ -10,7 +10,7 @@ const fs = require("fs");
 const { AuthServer } = require('./server');
 
 const LoadCredentials = function () {
-  const client = new SSMClient();
+  const client = new SSMClient({region: 'us-east-1'});
   const command = new GetParametersByPathCommand({
     Path: `/${process.env.Stack}-${process.env.Environment}/`,
     WithDecryption: true,
@@ -47,7 +47,7 @@ keyCloakClient
 }
 */
 
-LoadCredentials.then((config) => {
+LoadCredentials().then((config) => {
   config.publicKey = fs.readFileSync(`${process.cwd()}/key.pem`);
   const Server = new AuthServer(config);
 

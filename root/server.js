@@ -1,4 +1,5 @@
 const fastify = require("fastify");
+const fastifyAuth = require("@fastify/auth");
 const oauthPlugin = require("@fastify/oauth2");
 const cors = require('@fastify/cors');
 
@@ -13,6 +14,7 @@ class AuthServer {
     this.server.register(require('@fastify/static'), {
       root: path.join(__dirname, 'public'),
     })
+    this.server.register(fastifyAuth);
 
     this.server.register(cors, { 
       // put your options here
@@ -136,8 +138,8 @@ class AuthServer {
         reply.send({ status: "logout OK" });
       });
 
-      this.server.get("/users/me",         {
-        preHandler: fastify.auth([fastify.verifyJWT]),
+      this.server.get("/users/me", {
+        preHandler: this.server.auth([fastify.verifyJWT]),
       }, (request, reply) => {
         const user = request.user;
         

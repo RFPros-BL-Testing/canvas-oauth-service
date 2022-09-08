@@ -1,9 +1,33 @@
 {
   "dependencies": {
     "@aws-sdk/client-ssm": "^3.165.0",
+    "@fastify/auth": "^4.0.0",
+    "@fastify/cors": "^8.1.0",
     "@fastify/formbody": "^7.0.1",
     "@fastify/oauth2": "^6.0.0",
+    "@fastify/static": "^6.5.0",
     "fastify": "^4.5.2",
     "jsonwebtoken": "^8.5.1"
-  }
+  },
+  "name": "canvas-auth-service",
+  "description": "",
+  "version": "1.0.0",
+  "main": "root/index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RFPros-BL-Testing/canvas-auth-service.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RFPros-BL-Testing/canvas-auth-service/issues"
+  },
+  "homepage": "https://github.com/RFPros-BL-Testing/canvas-auth-service#readme"
 }
