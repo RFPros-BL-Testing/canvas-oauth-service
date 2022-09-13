@@ -2,7 +2,6 @@ const fastify = require("fastify");
 const fastifyAuth = require("@fastify/auth");
 const oauthPlugin = require("@fastify/oauth2");
 const cors = require('@fastify/cors');
-const fetch = require("node-fetch");
 
 const jwt = require("jsonwebtoken");
 const path = require("path");
@@ -168,8 +167,7 @@ class AuthServer {
 
 
       this.server.get('/.well-known/assetlinks.json', function (req, reply) {
-        console.log('send file', `./public/${process.env.Environment}-assetlinks.json`);
-        reply.sendFile(`./public/${process.env.Environment}-assetlinks.json`) 
+        reply.sendFile(`${process.env.Environment}-assetlinks.json`, path.join(__dirname, 'public'));
       })
     })
     .listen({ port: 8080, host: "0.0.0.0" }, function (err, address) {
