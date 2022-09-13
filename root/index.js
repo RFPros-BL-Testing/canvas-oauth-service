@@ -1,4 +1,4 @@
-process.env.Stack = "canvas-authservice";
+process.env.Stack = "canvas-as";
 process.env.Environment = "dev";
 
 const {
@@ -17,14 +17,13 @@ const LoadCredentials = function () {
   });
 
   const config = {};
-
   return client.send(command).then((response) => {
     response.Parameters.forEach((p) => {
       if (
         p.Name ===
         `/${process.env.Stack}-${process.env.Environment}/keyCloakClient`
       ) {
-        config.keyCloakClient = JSON.parse(p.Value);
+        config.keyCloakClient = JSON.parse(JSON.parse(p.Value)); // double parse? 
       }
     });
     return config;
@@ -34,16 +33,16 @@ const LoadCredentials = function () {
 /*
 keyCloakClient
 {
-  client: {
-    id: "test-client-ben",
-    secret: "IFCjUO8ZNQf824Vbd4QkZaaMZJsBRFra",
+  "client": {
+    "id": "test-client-ben",
+    "secret": "IFCjUO8ZNQf824Vbd4QkZaaMZJsBRFra"
   },
-  auth: {
-    authorizeHost: "https://keycloak-temp-dev.lairdconnect.com",
-    authorizePath: "/realms/Canvas/protocol/openid-connect/auth",
-    tokenHost: "https://keycloak-temp-dev.lairdconnect.com",
-    tokenPath: "/realms/Canvas/protocol/openid-connect/token",
-  },
+  "auth": {
+    "authorizeHost": "https://keycloak-temp-dev.lairdconnect.com",
+    "authorizePath": "/realms/Canvas/protocol/openid-connect/auth",
+    "tokenHost": "https://keycloak-temp-dev.lairdconnect.com",
+    "tokenPath": "/realms/Canvas/protocol/openid-connect/token"
+  }
 }
 */
 
