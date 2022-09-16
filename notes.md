@@ -19,3 +19,5 @@ do.domain/escrow_devices/*
 No identity provider
 - user google account with work email
 - after that, github enterprise account (paid or subsidized $120/year)
+
+

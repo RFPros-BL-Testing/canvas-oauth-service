@@ -1,5 +1,7 @@
 process.env.Stack = "canvas-as";
 process.env.Environment = "dev";
+// process.env.Provider = 'keyCloakClient';
+process.env.Provider = "azureB2CClient";
 
 const {
   SSMClient,
@@ -7,6 +9,9 @@ const {
 } = require("@aws-sdk/client-ssm");
 
 const fs = require("fs");
+const fetch = require("node-fetch");
+const jwkToPem = require('jwk-to-pem');
+
 const { AuthServer } = require('./server');
 
 const LoadCredentials = function () {
@@ -21,7 +26,7 @@ const LoadCredentials = function () {
     response.Parameters.forEach((p) => {
       if (
         p.Name ===
-        `/${process.env.Stack}-${process.env.Environment}/keyCloakClient`
+        `/${process.env.Stack}-${process.env.Environment}/${process.env.Provider}`
       ) {
         config.keyCloakClient = JSON.parse(JSON.parse(p.Value)); // double parse? 
       }
@@ -30,23 +35,32 @@ const LoadCredentials = function () {
   });
 };
 
-/*
-keyCloakClient
-{
-  "client": {
-    "id": "test-client-ben",
-    "secret": "IFCjUO8ZNQf824Vbd4QkZaaMZJsBRFra"
-  },
-  "auth": {
-    "authorizeHost": "https://keycloak-temp-dev.lairdconnect.com",
-    "authorizePath": "/realms/Canvas/protocol/openid-connect/auth",
-    "tokenHost": "https://keycloak-temp-dev.lairdconnect.com",
-    "tokenPath": "/realms/Canvas/protocol/openid-connect/token"
-  }
-}
-*/
-
 LoadCredentials().then((config) => {
+    // set config.publicKey
+    // convert and store by kid
+    // config.publicKeys[kid] = 
+
+    // get config.discoveryEndpoint
+    fetch(
+      config.discoveryEndpoint,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+      }
+    )
+    .then((res) => {
+      return res.json()
+    })
+    .then((json) => {
+      config.publicKeys = {};
+      // convert response.keys[0] to pem
+      json.keys.forEach((jwk) => {
+        config.publicKeys[jwk.kid] = jwkToPem(jwk);
+      })
+    });  
   config.publicKey = fs.readFileSync(`${process.cwd()}/key.pem`);
   const Server = new AuthServer(config);
 

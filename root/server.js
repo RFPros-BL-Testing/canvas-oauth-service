@@ -6,6 +6,10 @@ const cors = require('@fastify/cors');
 const jwt = require("jsonwebtoken");
 const path = require("path");
 
+function parseJwt (token) {
+  return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+}
+
 class AuthServer {
   constructor(config) {
     this.server = fastify();
@@ -24,6 +28,7 @@ class AuthServer {
     })
     
     const credentials = config.keyCloakClient
+    delete credentials.secretExpiration;
 
     this.server.register(oauthPlugin, {
       name: "keycloakCanvasApi",
@@ -58,10 +63,16 @@ class AuthServer {
         return reply.status(401).send("Forbidden");
       }
 
+      // decode jwt
+      // check the kid against config.publicKeys
+      // use publicKey
+      let token = parseJwt(authorization);
+      let key = config.publicKeys[token.kid];
+
       // verify the token
       jwt.verify(
         authorization,
-        config.publicKey,
+        key,
         { algorithm: "RS256" },
         (err, decoded) => {
           if (err) {
@@ -126,7 +137,6 @@ class AuthServer {
           if (err) {
             return reply.status(401).send(`Login Failed: ${err.message}`);
           }
-
           jwt.verify(
             result.token.access_token,
             config.publicKey,
@@ -169,6 +179,15 @@ class AuthServer {
       this.server.get('/.well-known/assetlinks.json', function (req, reply) {
         reply.sendFile(`${process.env.Environment}-assetlinks.json`, path.join(__dirname, 'public'));
       })
+
+      this.server.get('/public-key', (req, reply) => {
+        reply.send(config.publicKeys);
+      })
+
+      this.server.get('/public-key/:kid', (req, reply) => {
+        reply.send(config.publicKeys[req.params.kid]);
+      })
+
     })
     .listen({ port: 8080, host: "0.0.0.0" }, function (err, address) {
       if (err) {
