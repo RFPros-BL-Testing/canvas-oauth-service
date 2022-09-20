@@ -1,4 +1,4 @@
-process.env.Stack = "canvas-as";
+process.env.Stack = "canvas-oas";
 process.env.Environment = "dev";
 // process.env.Provider = 'keyCloakClient';
 process.env.Provider = "azureB2CClient";
@@ -23,11 +23,15 @@ const LoadCredentials = function () {
 
   const config = {};
   return client.send(command).then((response) => {
+    console.log(response)
     response.Parameters.forEach((p) => {
       if (
         p.Name ===
         `/${process.env.Stack}-${process.env.Environment}/${process.env.Provider}`
       ) {
+        console.log(p.Value);
+        console.log(JSON.parse(p.Value));
+
         config.keyCloakClient = JSON.parse(JSON.parse(p.Value)); // double parse? 
       }
     });
@@ -40,6 +44,7 @@ LoadCredentials().then((config) => {
     // convert and store by kid
     // config.publicKeys[kid] = 
 
+    console.log(config)
     // get config.discoveryEndpoint
     fetch(
       config.discoveryEndpoint,
@@ -60,9 +65,9 @@ LoadCredentials().then((config) => {
       json.keys.forEach((jwk) => {
         config.publicKeys[jwk.kid] = jwkToPem(jwk);
       })
-    });  
-  config.publicKey = fs.readFileSync(`${process.cwd()}/key.pem`);
-  const Server = new AuthServer(config);
+      const Server = new AuthServer(config);
+    });
+  // config.publicKey = fs.readFileSync(`${process.cwd()}/key.pem`);
 
 }).catch((error) => {
     console.error('Could not load credentials', error);
