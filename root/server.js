@@ -163,6 +163,11 @@ class AuthServer {
         return reply.status(200).send("OK");
       });
 
+      this.server.post("/annie", function(request, reply) {
+        console.log("annie are you OK?", request.body);
+        return reply.status(200).send("OK");
+      });
+
       this.server.get("/logout/callback", function (request, reply) {
         reply.send({ status: "logout OK" });
       });
