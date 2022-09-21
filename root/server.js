@@ -31,7 +31,7 @@ class AuthServer {
 
     this.server.register(oauthPlugin, {
       name: "OauthCanvasApi",
-      scope: ["email"],
+      scope: ["openid"],
       role: ["guest_user"],
       credentials: {
         client,

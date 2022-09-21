@@ -21,7 +21,7 @@ const LoadCredentials = function () {
     WithDecryption: true,
   });
 
-  const config = {};
+  let config = {};
   return client.send(command).then((response) => {
     response.Parameters.forEach((p) => {
       if (
@@ -41,7 +41,6 @@ LoadCredentials().then((config) => {
     // convert and store by kid
     // config.publicKeys[kid] = 
 
-    console.log(config)
     // get config.discoveryEndpoint
     fetch(
       config.discoveryEndpoint,
