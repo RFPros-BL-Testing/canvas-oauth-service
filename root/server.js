@@ -23,18 +23,20 @@ class AuthServer {
     this.server.register(cors, { 
       // put your options here
       origin: (origin, cb) => {
-        cb(null, true)
+        cb(null, true);
       }  
     })
     
-    const credentials = config.keyCloakClient
-    delete credentials.secretExpiration;
+    const { client, auth} = config;
 
     this.server.register(oauthPlugin, {
-      name: "keycloakCanvasApi",
+      name: "OauthCanvasApi",
       scope: ["email"],
       role: ["guest_user"],
-      credentials,
+      credentials: {
+        client,
+        auth
+      },
       startRedirectPath: "/login",
       callbackUri: "https://canvas-as.salticidae.net/login/callback",
       callbackUriParams: {
@@ -109,7 +111,7 @@ class AuthServer {
         //   .then((json) => {
 
 
-        this.server.keycloakCanvasApi.getNewAccessTokenUsingRefreshToken(JSON.parse(request.query.token), (err, result) => {
+        this.server.OauthCanvasApi.getNewAccessTokenUsingRefreshToken(JSON.parse(request.query.token), (err, result) => {
           jwt.verify(
             result.token.access_token,
             config.publicKey,
@@ -133,7 +135,7 @@ class AuthServer {
 
       this.server.get("/login/callback/code", (request, reply) => {
         console.log('request with code');
-        this.server.keycloakCanvasApi.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
+        this.server.OauthCanvasApi.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
           if (err) {
             return reply.status(401).send(`Login Failed: ${err.message}`);
           }

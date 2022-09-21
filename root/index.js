@@ -23,16 +23,13 @@ const LoadCredentials = function () {
 
   const config = {};
   return client.send(command).then((response) => {
-    console.log(response)
     response.Parameters.forEach((p) => {
       if (
         p.Name ===
         `/${process.env.Stack}-${process.env.Environment}/${process.env.Provider}`
       ) {
-        console.log(p.Value);
-        console.log(JSON.parse(p.Value));
 
-        config.keyCloakClient = JSON.parse(JSON.parse(p.Value)); // double parse? 
+        config = JSON.parse(p.Value); // double parse? 
       }
     });
     return config;
@@ -57,6 +54,11 @@ LoadCredentials().then((config) => {
       }
     )
     .then((res) => {
+      return res.json()
+    })
+    .then((json) => {
+      return fetch(json.jwks_uri)
+    }).then((res) => {
       return res.json()
     })
     .then((json) => {
