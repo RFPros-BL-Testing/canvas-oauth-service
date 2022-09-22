@@ -2,6 +2,7 @@ const fastify = require("fastify");
 const fastifyAuth = require("@fastify/auth");
 const oauthPlugin = require("@fastify/oauth2");
 const cors = require('@fastify/cors');
+const fetch = require('node-fetch');
 
 const jwt = require("jsonwebtoken");
 const path = require("path");
@@ -31,14 +32,18 @@ class AuthServer {
 
     this.server.register(oauthPlugin, {
       name: "OauthCanvasApi",
-      scope: ["openid"],
+      scope: [
+        "openid",
+        "offline_access",
+        config.client.id
+      ],
       role: ["guest_user"],
       credentials: {
         client,
         auth
       },
       startRedirectPath: "/login",
-      callbackUri: "https://canvas-as.salticidae.net/login/callback",
+      callbackUri: "https://jwt.ms",
       callbackUriParams: {
         exampleParam: "example param value",
       },
@@ -94,23 +99,6 @@ class AuthServer {
       })
 
       this.server.get("/login/refresh", (request, reply) => {
-        // send it manually instead
-        // const query = `?=grant_type=refresh_token&refresh_token=eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJiYmNmM2Y3My0wMDNjLTRlNmMtOTBhNS1mYjBjM2E5YzVkMzcifQ.eyJleHAiOjE2NjUzNDEyNTQsImlhdCI6MTY2Mjc0OTI1NCwianRpIjoiYWIwMjY0ZjYtMmYyYi00NmJkLWFiYTEtYWY2NTg1ZTYwZGIyIiwiaXNzIjoiaHR0cHM6Ly9rZXljbG9hay10ZW1wLWRldi5sYWlyZGNvbm5lY3QuY29tL3JlYWxtcy9DYW52YXMiLCJhdWQiOiJodHRwczovL2tleWNsb2FrLXRlbXAtZGV2LmxhaXJkY29ubmVjdC5jb20vcmVhbG1zL0NhbnZhcyIsInN1YiI6ImQ4MmI0Mjg4LWRhMjAtNGYzMy04MDI0LWEzYWNlYmExOTM3YiIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJ0ZXN0LWNsaWVudC1iZW4iLCJzZXNzaW9uX3N0YXRlIjoiYWZmMGI2N2ItZWMyYi00MjFkLTllZGMtZThhNjMxYjI5MmNlIiwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwic2lkIjoiYWZmMGI2N2ItZWMyYi00MjFkLTllZGMtZThhNjMxYjI5MmNlIn0.8C4NyZo8u4ydk7hAOg-KwmKE_KiRut0CtmnCa7EeyF0&client_id=test-client-ben&client_secret=IFCjUO8ZNQf824Vbd4QkZaaMZJsBRFra`
-        
-        // fetch(
-        //   `https://keycloak-temp-dev.lairdconnect.com/realms/Canvas/protocol/openid-connect/token${query}`,
-        //   {
-        //     method: "GET",
-        //     headers: {
-        //       Authorization: "Bearer " + user.data.spotifyToken.access_token,
-        //       "Content-Type": "application/json",
-        //     },
-        //   }
-        // )
-        //   .then((res) => res.json())
-        //   .then((json) => {
-
-
         this.server.OauthCanvasApi.getNewAccessTokenUsingRefreshToken(JSON.parse(request.query.token), (err, result) => {
           jwt.verify(
             result.token.access_token,
@@ -134,31 +122,51 @@ class AuthServer {
       })
 
       this.server.get("/login/callback/code", (request, reply) => {
-        console.log('request with code');
-        this.server.OauthCanvasApi.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
-          if (err) {
-            return reply.status(401).send(`Login Failed: ${err.message}`);
-          }
-          jwt.verify(
-            result.token.access_token,
-            config.publicKey,
-            { algorithm: "RS256" },
-            (err, decoded) => {
-              if (err) {
-                console.error("Error verifying token", err.message);
-              }
-              if (!err) {
-                reply.send({ token: result.token });
-                // reply.header("Content-Type", "text/plain").send("OK")
-              } else {
-                reply.status(401).send("Login Failed");
-              }
-            }
-          );
-        });
-      });
 
-      // pkce
+        // verify state
+
+        const params = new URLSearchParams();
+        params.append("grant_type", "authorization_code");
+        params.append("client_id", config.client.id);
+        params.append("scope", 'a1f12308-c904-4021-a1f7-05caeeb658fe%20openid%20offline_access');
+        params.append("redirect_uri", 'https://jwt.ms');
+        params.append("client_secret", config.client.secret);
+        params.append("code", request.query.code);
+
+        // config.token endpoint
+        fetch("https://rfprosb2c.b2clogin.com/rfprosb2c.onmicrosoft.com/B2C_1_CANVAS/oauth2/v2.0/token", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: params 
+        }).then((resp) => {
+          console.log(resp);
+        })
+
+        // this.server.OauthCanvasApi.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
+        //   console.log(err);
+        //   if (err) {
+        //     return reply.status(401).send(`Login Failed: ${err.message}`);
+        //   }
+        //   jwt.verify(
+        //     result.token.access_token,
+        //     config.publicKey,
+        //     { algorithm: "RS256" },
+        //     (err, decoded) => {
+        //       if (err) {
+        //         console.error("Error verifying token", err.message);
+        //       }
+        //       if (!err) {
+        //         reply.send({ token: result.token });
+        //         // reply.header("Content-Type", "text/plain").send("OK")
+        //       } else {
+        //         reply.status(401).send("Login Failed");
+        //       }
+        //     }
+        //   );
+        // });
+      });
 
       this.server.get("/annie", function(request, reply) {
         console.log("annie are you OK?");
