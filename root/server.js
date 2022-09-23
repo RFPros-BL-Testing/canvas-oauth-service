@@ -43,7 +43,7 @@ class AuthServer {
         auth
       },
       startRedirectPath: "/login",
-      callbackUri: "https://canvas-test.salticidae.net/login/callback",
+      callbackUri: "https://canvas-as.salticidae.net/login/callback",
       callbackUriParams: {
         exampleParam: "example param value",
       },
@@ -143,13 +143,13 @@ class AuthServer {
         }).then((resp) => {
           return resp.json();
         }).then((result) => {
-
-          if (!result.token) {
+          console.log(result);
+          if (!result.access_token) {
             return reply.status(401).send(`Login Failed`);
           }
 
           jwt.verify(
-            result.token.access_token,
+            result.access_token,
             config.publicKey,
             { algorithm: "RS256" },
             (err, decoded) => {
@@ -157,7 +157,7 @@ class AuthServer {
                 console.error("Error verifying token", err.message);
               }
               if (!err) {
-                reply.send({ token: result.token });
+                reply.send({ token: result });
               } else {
                 reply.status(401).send("Login Failed");
               }
