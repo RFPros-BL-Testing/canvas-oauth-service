@@ -7,10 +7,6 @@ const fetch = require('node-fetch');
 const jwt = require("jsonwebtoken");
 const path = require("path");
 
-function parseJwt (token) {
-  return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-}
-
 class AuthServer {
   constructor(config) {
     this.server = fastify();
@@ -73,8 +69,8 @@ class AuthServer {
       // decode jwt
       // check the kid against config.publicKeys
       // use publicKey
-      let token = parseJwt(authorization);
-      let key = config.publicKeys[token.kid];
+      let decoded = jwt.decode(authorization, {complete: true});
+      let key = config.publicKeys[decoded.header.kid];
 
       // verify the token
       jwt.verify(
@@ -99,20 +95,40 @@ class AuthServer {
       })
 
       this.server.get("/login/refresh", (request, reply) => {
-        this.server.OauthCanvasApi.getNewAccessTokenUsingRefreshToken(JSON.parse(request.query.token), (err, result) => {
+        const params = new URLSearchParams();
+        params.append("grant_type", "refresh_token");
+        params.append("client_id", config.client.id);
+        // params.append("scope", `${config.client.id} openid offline_access`);
+        // params.append("redirect_uri", 'https://jwt.ms');
+        params.append("client_secret", config.client.secret);
+        params.append("refresh_token", request.user.refresh_token);
+
+        // config.token endpoint
+        fetch(config.auth.tokenHost + config.auth.tokenPath, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: params 
+        }).then((resp) => {
+          return resp.json();
+        }).then((result) => {
+          if (!result.access_token) {
+            return reply.status(401).send(`Login Failed`);
+          }
+          let decoded = jwt.decode(result.access_token, {complete: true});
+          let key = config.publicKeys[decoded.header.kid];
           jwt.verify(
-            result.token.access_token,
-            config.publicKey,
+            result.access_token,
+            key,
             { algorithm: "RS256" },
             (err, decoded) => {
               if (err) {
                 console.error("Error verifying token", err.message);
               }
               // verified
-              console.log(err, decoded);
               if (!err) {
-                reply.send({ token: result.token });
-                // reply.header("Content-Type", "text/plain").send("OK")
+                reply.send({ token: result });
               } else {
                 reply.status(401).send("Login Failed");
               }
@@ -143,14 +159,16 @@ class AuthServer {
         }).then((resp) => {
           return resp.json();
         }).then((result) => {
-          console.log(result);
           if (!result.access_token) {
             return reply.status(401).send(`Login Failed`);
           }
 
+          let decoded = jwt.decode(result.access_token, {complete: true});
+          let key = config.publicKeys[decoded.header.kid];
+
           jwt.verify(
             result.access_token,
-            config.publicKey,
+            key,
             { algorithm: "RS256" },
             (err, decoded) => {
               if (err) {
