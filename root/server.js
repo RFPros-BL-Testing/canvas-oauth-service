@@ -43,7 +43,7 @@ class AuthServer {
         auth
       },
       startRedirectPath: "/login",
-      callbackUri: "https://jwt.ms",
+      callbackUri: "https://canvas-test.salticidae.net/login/callback",
       callbackUriParams: {
         exampleParam: "example param value",
       },
@@ -128,44 +128,44 @@ class AuthServer {
         const params = new URLSearchParams();
         params.append("grant_type", "authorization_code");
         params.append("client_id", config.client.id);
-        params.append("scope", 'a1f12308-c904-4021-a1f7-05caeeb658fe%20openid%20offline_access');
-        params.append("redirect_uri", 'https://jwt.ms');
+        params.append("scope", `${config.client.id} openid offline_access`);
+        // params.append("redirect_uri", 'https://jwt.ms');
         params.append("client_secret", config.client.secret);
         params.append("code", request.query.code);
 
         // config.token endpoint
-        fetch("https://rfprosb2c.b2clogin.com/rfprosb2c.onmicrosoft.com/B2C_1_CANVAS/oauth2/v2.0/token", {
+        fetch(config.auth.tokenHost + config.auth.tokenPath, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
           },
           body: params 
         }).then((resp) => {
-          console.log(resp);
+          return resp.json();
+        }).then((result) => {
+
+          if (!result.token) {
+            return reply.status(401).send(`Login Failed`);
+          }
+
+          jwt.verify(
+            result.token.access_token,
+            config.publicKey,
+            { algorithm: "RS256" },
+            (err, decoded) => {
+              if (err) {
+                console.error("Error verifying token", err.message);
+              }
+              if (!err) {
+                reply.send({ token: result.token });
+              } else {
+                reply.status(401).send("Login Failed");
+              }
+            }
+          );
+
         })
 
-        // this.server.OauthCanvasApi.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
-        //   console.log(err);
-        //   if (err) {
-        //     return reply.status(401).send(`Login Failed: ${err.message}`);
-        //   }
-        //   jwt.verify(
-        //     result.token.access_token,
-        //     config.publicKey,
-        //     { algorithm: "RS256" },
-        //     (err, decoded) => {
-        //       if (err) {
-        //         console.error("Error verifying token", err.message);
-        //       }
-        //       if (!err) {
-        //         reply.send({ token: result.token });
-        //         // reply.header("Content-Type", "text/plain").send("OK")
-        //       } else {
-        //         reply.status(401).send("Login Failed");
-        //       }
-        //     }
-        //   );
-        // });
       });
 
       this.server.get("/annie", function(request, reply) {
